@@ -1,0 +1,47 @@
+타이치 후디니
+https://github.com/taichi-dev/taichi_houdini
+
+타이치 element
+https://github.com/taichi-dev/taichi_elements
+
+
+taichi blender
+https://github.com/taichi-dev/taichi_blend
+
+taichi example EX폴더에 들어이씀
+https://github.com/victoriacity/taichimd
+
+
+====
+9/10
+블랜더 돌리기 완료
+legacy branch 분석해보기
+taichi-elements 코드 돌아가는 거 분석해서 새로운 씬 하나 구성하기
+
+
+9/15
+앞에꺼 다 버리고 다시 성능 향상 시키기를 목표로 설정하겠습니
+
+parallel for문 사용하기
+
+cuda
+
+multi threading
+https://dev.epicgames.com/community/learning/tutorials/7Rz/unreal-engine-rama-code-multi-threading-in-ue5-c
+
+
+9/16
+mpm 수식에서 파라메터 좀 수정 & 파라메터 값이 뜻하는 것 뭔지 알아내기
+elastic lambda가 커지면 더 많이 쪼개진다. 응집도가 떨어지는듯
+elatic mu 커지면 좀 더 단단한 젤리가 된다. -> 파티클수가 많아지면 mu 값이 더 커져야함
+
+파라메터 체크1) | grid : 64 / spacing : 0.5 / box_x : 16 / sx : grid_res / 2 | 32768 particles
+파라메터 체크2) | box_x를 바꾸는 게 나을듯
+
+궁금증 : grid res VS particle number 둘 중 어떤 것이 더 성능을 잡아먹나
+
+*ParallelFor 사용을 Clear Grid 에만 썻는데 성능 2배임 (원래 FPS 6ms 였는데, 지금 20ms가나온다.)
+-> 참고로 언리얼 렌더링을 Low로 하고 있긴 함
+-> 성능 잘못씀 ㅠ 그냥 렌더링 5번 하던거 1번으로 바꿔서 빨라진거임 (6ms가 맞다)
+
+그냥 for문은 parallel for문으로 바꾸면 안되는것 같다.. (task로 분리를 해둬야 하는 것 같음..)

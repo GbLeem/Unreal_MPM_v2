@@ -73,5 +73,4 @@ public:
 	TArray<Cell*> m_pGrid;
 	TArray<PMatrix<float, 3, 3>> Fs;
 	TArray<FVector3f> weights;
-
 };
