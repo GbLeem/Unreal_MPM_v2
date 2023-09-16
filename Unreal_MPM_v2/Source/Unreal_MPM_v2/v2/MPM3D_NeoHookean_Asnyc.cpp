@@ -158,131 +158,134 @@ void AMPM3D_NeoHookean_Asnyc::P2G()
 {
 	//for (int i = 0; i < NumParticles; ++i)
 	
-	weights.Empty(3);
+	//weights.Empty(3);
 
-	ParallelFor(NumParticles, [&](int32 i)
-		{
-			Particle* p = m_pParticles[i];
-
-			PMatrix<float, 3, 3> stress(0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-			PMatrix<float, 3, 3> F = Fs[i];
-
-			float J = F.Determinant();
-
-			float volume = p->volume_0 * J;
-
-			PMatrix<float, 3, 3> F_T = F.GetTransposed();
-			PMatrix<float, 3, 3> F_inv_T = F_T.Inverse();
-			PMatrix<float, 3, 3> F_minus_F_inv_T = F - F_inv_T;
-
-			PMatrix<float, 3, 3> P_term_0 = elastic_mu * F_minus_F_inv_T;
-			PMatrix<float, 3, 3> P_term_1 = elastic_lambda * log(J) * F_inv_T;
-			PMatrix<float, 3, 3> P = P_term_0 + P_term_1;
-
-			stress = (1.f / J) * (P * F_T);
-
-			PMatrix<float, 3, 3> eq_16_term_0 = -volume * 2 * stress * dt; // [digit 2 is hyper parameter]
-
-			FIntVector cell_idx = FIntVector(p->x.X, p->x.Y, p->x.Z);
-			FVector3f cell_diff = FVector3f(p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f);
-
-			weights.Add({ 0.5f * (float)pow(0.5f - cell_diff.X, 2), 0.5f * (float)pow(0.5f - cell_diff.Y, 2),0.5f * (float)pow(0.5f - cell_diff.Z, 2) });
-			weights.Add({ 0.75f - (float)pow(cell_diff.X, 2), 0.75f - (float)pow(cell_diff.Y, 2), 0.75f - (float)pow(cell_diff.Z, 2) });
-			weights.Add({ 0.5f * (float)pow(0.5f + cell_diff.X, 2), 0.5f * (float)pow(0.5f + cell_diff.Y, 2), 0.5f * (float)pow(0.5f + cell_diff.Z, 2) });
-					
-
-			//[TODO] make this code parallel for
-			ParallelFor(3, [&](int gx)
-				{
-					for (int gy = 0; gy < 3; ++gy)
-					{
-						for (int gz = 0; gz < 3; ++gz)
-						{
-							float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
-
-							FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
-							FVector3f cell_dist = FVector3f(cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f);
-							FVector3f Q = p->C * cell_dist;
-
-							int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
-
-							Cell* cell = m_pGrid[cell_index];
-							float weighted_mass = weight * p->mass;
-							cell->mass += weighted_mass;
-
-							cell->v += weighted_mass * (p->v + Q);
-
-							FVector3f momentum = (eq_16_term_0 * weight) * cell_dist;
-							cell->v += momentum;
-
-							m_pGrid[cell_index] = cell;
-						}
-					}
-				});
-		});
-
-	//============
-	//for (int i = 0; i < NumParticles; ++i)
-	//{
-	//	Particle* p = m_pParticles[i];
-
-	//	PMatrix<float, 3, 3> stress(0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-	//	PMatrix<float, 3, 3> F = Fs[i];
-
-	//	float J = F.Determinant();
-
-	//	float volume = p->volume_0 * J;
-
-	//	PMatrix<float, 3, 3> F_T = F.GetTransposed();
-	//	PMatrix<float, 3, 3> F_inv_T = F_T.Inverse();
-	//	PMatrix<float, 3, 3> F_minus_F_inv_T = F - F_inv_T;
-
-	//	PMatrix<float, 3, 3> P_term_0 = elastic_mu * F_minus_F_inv_T;
-	//	PMatrix<float, 3, 3> P_term_1 = elastic_lambda * log(J) * F_inv_T;
-	//	PMatrix<float, 3, 3> P = P_term_0 + P_term_1;
-
-	//	stress = (1.f / J) * (P * F_T);
-
-	//	PMatrix<float, 3, 3> eq_16_term_0 = -volume * 2 * stress * dt; // [digit 2 is hyper parameter]
-
-	//	FIntVector cell_idx = FIntVector(p->x.X, p->x.Y, p->x.Z);
-	//	FVector3f cell_diff = FVector3f(p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f);
-
-	//	weights.Empty(3);
-	//	weights.Add({ 0.5f * (float)pow(0.5f - cell_diff.X, 2), 0.5f * (float)pow(0.5f - cell_diff.Y, 2),0.5f * (float)pow(0.5f - cell_diff.Z, 2) });
-	//	weights.Add({ 0.75f - (float)pow(cell_diff.X, 2), 0.75f - (float)pow(cell_diff.Y, 2), 0.75f - (float)pow(cell_diff.Z, 2) });
-	//	weights.Add({ 0.5f * (float)pow(0.5f + cell_diff.X, 2), 0.5f * (float)pow(0.5f + cell_diff.Y, 2), 0.5f * (float)pow(0.5f + cell_diff.Z, 2) });
-
-	//	for (int gx = 0; gx < 3; ++gx)
+	//ParallelFor(NumParticles, [&](int32 i)
 	//	{
-	//		for (int gy = 0; gy < 3; ++gy)
-	//		{
-	//			for (int gz = 0; gz < 3; ++gz)
+	//		Particle* p = m_pParticles[i];
+
+	//		PMatrix<float, 3, 3> stress(0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	//		PMatrix<float, 3, 3> F = Fs[i];
+
+	//		float J = F.Determinant();
+
+	//		float volume = p->volume_0 * J;
+
+	//		PMatrix<float, 3, 3> F_T = F.GetTransposed();
+	//		PMatrix<float, 3, 3> F_inv_T = F_T.Inverse();
+	//		PMatrix<float, 3, 3> F_minus_F_inv_T = F - F_inv_T;
+
+	//		PMatrix<float, 3, 3> P_term_0 = elastic_mu * F_minus_F_inv_T;
+	//		PMatrix<float, 3, 3> P_term_1 = elastic_lambda * log(J) * F_inv_T;
+	//		PMatrix<float, 3, 3> P = P_term_0 + P_term_1;
+
+	//		stress = (1.f / J) * (P * F_T);
+
+	//		PMatrix<float, 3, 3> eq_16_term_0 = -volume * 2 * stress * dt; // [digit 2 is hyper parameter]
+
+	//		FIntVector cell_idx = FIntVector(p->x.X, p->x.Y, p->x.Z);
+	//		FVector3f cell_diff = FVector3f(p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f);
+
+	//		weights.Add({ 0.5f * (float)pow(0.5f - cell_diff.X, 2), 0.5f * (float)pow(0.5f - cell_diff.Y, 2),0.5f * (float)pow(0.5f - cell_diff.Z, 2) });
+	//		weights.Add({ 0.75f - (float)pow(cell_diff.X, 2), 0.75f - (float)pow(cell_diff.Y, 2), 0.75f - (float)pow(cell_diff.Z, 2) });
+	//		weights.Add({ 0.5f * (float)pow(0.5f + cell_diff.X, 2), 0.5f * (float)pow(0.5f + cell_diff.Y, 2), 0.5f * (float)pow(0.5f + cell_diff.Z, 2) });
+	//				
+
+	//		//[TODO] make this code parallel for
+	//		/*ParallelFor(3,[&](int gx)
 	//			{
-	//				float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
+	//			})*/
+	//		for (int gx = 0; gx < 3; ++gx)
+	//		{
+	//			for (int gy = 0; gy < 3; ++gy)
+	//			{
+	//				for (int gz = 0; gz < 3; ++gz)
+	//				{
+	//					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
 
-	//				FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
-	//				FVector3f cell_dist = FVector3f(cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f);
-	//				FVector3f Q = p->C * cell_dist;
+	//					FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
+	//					FVector3f cell_dist = FVector3f(cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f);
+	//					FVector3f Q = p->C * cell_dist;
 
-	//				int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
+	//					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
 
-	//				Cell* cell = m_pGrid[cell_index];
-	//				float weighted_mass = weight * p->mass;
-	//				cell->mass += weighted_mass;
+	//					Cell* cell = m_pGrid[cell_index];
+	//					float weighted_mass = weight * p->mass;
+	//					cell->mass += weighted_mass;
 
-	//				cell->v += weighted_mass * (p->v + Q);
+	//					cell->v += weighted_mass * (p->v + Q);
 
-	//				FVector3f momentum = (eq_16_term_0 * weight) * cell_dist;
-	//				cell->v += momentum;
+	//					FVector3f momentum = (eq_16_term_0 * weight) * cell_dist;
+	//					cell->v += momentum;
 
-	//				m_pGrid[cell_index] = cell;
+	//					m_pGrid[cell_index] = cell;
+	//				}
 	//			}
 	//		}
-	//	}
-	//}
+	//	});
+
+	//============
+	for (int i = 0; i < NumParticles; ++i)
+	{
+		Particle* p = m_pParticles[i];
+
+		PMatrix<float, 3, 3> stress(0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+		PMatrix<float, 3, 3> F = Fs[i];
+
+		float J = F.Determinant();
+
+		float volume = p->volume_0 * J;
+
+		PMatrix<float, 3, 3> F_T = F.GetTransposed();
+		PMatrix<float, 3, 3> F_inv_T = F_T.Inverse();
+		PMatrix<float, 3, 3> F_minus_F_inv_T = F - F_inv_T;
+
+		PMatrix<float, 3, 3> P_term_0 = elastic_mu * F_minus_F_inv_T;
+		PMatrix<float, 3, 3> P_term_1 = elastic_lambda * log(J) * F_inv_T;
+		PMatrix<float, 3, 3> P = P_term_0 + P_term_1;
+
+		stress = (1.f / J) * (P * F_T);
+
+		PMatrix<float, 3, 3> eq_16_term_0 = -volume * 2 * stress * dt; // [digit 2 is hyper parameter]
+
+		FIntVector cell_idx = FIntVector(p->x.X, p->x.Y, p->x.Z);
+		FVector3f cell_diff = FVector3f(p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f);
+
+		weights.Empty(3);
+		weights.Add({ 0.5f * (float)pow(0.5f - cell_diff.X, 2), 0.5f * (float)pow(0.5f - cell_diff.Y, 2),0.5f * (float)pow(0.5f - cell_diff.Z, 2) });
+		weights.Add({ 0.75f - (float)pow(cell_diff.X, 2), 0.75f - (float)pow(cell_diff.Y, 2), 0.75f - (float)pow(cell_diff.Z, 2) });
+		weights.Add({ 0.5f * (float)pow(0.5f + cell_diff.X, 2), 0.5f * (float)pow(0.5f + cell_diff.Y, 2), 0.5f * (float)pow(0.5f + cell_diff.Z, 2) });
+
+		for (int gx = 0; gx < 3; ++gx)
+		{
+			for (int gy = 0; gy < 3; ++gy)
+			{
+				for (int gz = 0; gz < 3; ++gz)
+				{
+					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
+
+					FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
+					FVector3f cell_dist = FVector3f(cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f);
+					FVector3f Q = p->C * cell_dist;
+
+					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
+
+					Cell* cell = m_pGrid[cell_index]; //[TODO] index out of error occurs
+					float weighted_mass = weight * p->mass;
+					cell->mass += weighted_mass;
+
+					cell->v += weighted_mass * (p->v + Q);
+
+					FVector3f momentum = (eq_16_term_0 * weight) * cell_dist;
+					cell->v += momentum;
+
+					m_pGrid[cell_index] = cell;
+				}
+			}
+		}
+	}
 }
 
 void AMPM3D_NeoHookean_Asnyc::UpdateGrid()

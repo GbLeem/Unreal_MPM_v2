@@ -45,3 +45,15 @@ elatic mu 커지면 좀 더 단단한 젤리가 된다. -> 파티클수가 많�
 -> 성능 잘못씀 ㅠ 그냥 렌더링 5번 하던거 1번으로 바꿔서 빨라진거임 (6ms가 맞다)
 
 그냥 for문은 parallel for문으로 바꾸면 안되는것 같다.. (task로 분리를 해둬야 하는 것 같음..)
+
+=========================<생각해봐야 할 것>=========================
+*성능을 위해 job system 하거나, 3차원 배열 채우는 걸 1차원으로 바꾸기? 
+   참고1) https://docs.unrealengine.com/5.0/en-US/tasks-systems-in-unreal-engine/ 
+   참고2) https://www.youtube.com/watch?v=H2ev_aXDe2U&t=609s
+   참고3) https://dev.epicgames.com/community/learning/tutorials/7Rz/unreal-engine-rama-code-multi-threading-in-ue5-c
+
+일반 MPM 코드 대신 MLS-MPM 코드 생각해보기
+https://github.com/vanish87/UnityMPM/blob/master/Assets/Scripts/MLSMPM/MLSMPMGPU.cs
+& 
+유니티에서 job system 구현한 것도 생각해보기
+================================================================
