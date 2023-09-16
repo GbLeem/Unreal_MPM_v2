@@ -1,26 +1,32 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
 #pragma once
 
+#include "Runtime/Core/Public/Async/ParallelFor.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Chaos/Matrix.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "MPM3D_NeoHookean.generated.h"
+#include "MPM3D_NeoHookean_Asnyc.generated.h"
 
 using namespace Chaos;
 
 UCLASS()
-class UNREAL_MPM_V2_API AMPM3D_NeoHookean : public AActor
+class UNREAL_MPM_V2_API AMPM3D_NeoHookean_Asnyc : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
-	AMPM3D_NeoHookean();
+	// Sets default values for this actor's properties
+	AMPM3D_NeoHookean_Asnyc();
 
 protected:
+	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:
+public:	
+	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	void ClearGrid();
@@ -54,7 +60,7 @@ public:
 	int NumParticles = 0;
 
 	const int grid_res = 64;
-	const int NumCells = grid_res * grid_res * grid_res;
+	const int32 NumCells = grid_res * grid_res * grid_res;
 
 	const float dt = 0.1f;
 	const float iterations = (int)(1.f / dt);
@@ -67,4 +73,5 @@ public:
 	TArray<Cell*> m_pGrid;
 	TArray<PMatrix<float, 3, 3>> Fs;
 	TArray<FVector3f> weights;
+
 };
