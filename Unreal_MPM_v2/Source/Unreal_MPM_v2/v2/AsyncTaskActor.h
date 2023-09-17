@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "AsyncTaskActor.generated.h"
-
 UCLASS()
 class UNREAL_MPM_V2_API AAsyncTaskActor : public AActor
 {

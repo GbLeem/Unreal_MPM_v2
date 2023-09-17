@@ -73,4 +73,8 @@ public:
 	TArray<Cell*> m_pGrid;
 	TArray<PMatrix<float, 3, 3>> Fs;
 	TArray<FVector3f> weights;
+
+public:
+	FCriticalSection m_particleMutex;
+	FCriticalSection m_gridMutex;
 };

@@ -47,7 +47,10 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 	}
 
 	NumParticles = TempPositions.Num();
+	m_particleMutex.Lock();
 	m_pParticles.Empty(NumParticles);
+	m_particleMutex.Unlock();
+
 	Fs.Empty(NumParticles);
 
 	UE_LOG(LogTemp, Log, TEXT("NUMPARTICLES : %d"), NumParticles);
@@ -61,14 +64,16 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 			p->C;
 			p->mass = 1.f;
 
+			m_particleMutex.Lock();
 			m_pParticles.Add(p);
+			m_particleMutex.Unlock();
 
 			PMatrix<float, 3, 3> temp(1, 1, 1);
 			Fs.Add(temp);
 		});
-
+	m_gridMutex.Lock();
 	m_pGrid.Empty(NumCells);
-	
+	m_gridMutex.Unlock();
 	/*for (int i = 0; i < NumCells; ++i)
 	{
 		Cell* cell = new Cell();
@@ -77,15 +82,18 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 	}*/
 	ParallelFor(NumCells, [&](int32 i)
 		{
+			m_gridMutex.Lock();
 			Cell* cell = new Cell();
 			cell->v = { 0.f, 0.f, 0.f };
 			m_pGrid.Add(cell);
+			m_gridMutex.Unlock();
 		});
 
 	P2G();
 
 	for (int i = 0; i < NumParticles; ++i)
 	{
+		m_particleMutex.Lock();
 		Particle* p = m_pParticles[i];
 
 		FVector3f cell_idx = { (float)floor(p->x.X), (float)floor(p->x.Y) ,(float)floor(p->x.Z) };
@@ -115,6 +123,7 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 		p->volume_0 = volume;
 
 		m_pParticles[i] = p;
+		m_particleMutex.Unlock();
 	}
 
 	if (InstancedStaticMeshComponent->GetInstanceCount() == 0)
@@ -147,10 +156,12 @@ void AMPM3D_NeoHookean_Asnyc::ClearGrid()
 {
 	ParallelFor(NumCells, [&](int32 i)
 		{
+			m_gridMutex.Lock();
 			Cell* cell = m_pGrid[i];
 			cell->mass = 0;
 			cell->v = { 0.f, 0.f,0.f };
 			m_pGrid[i] = cell;
+			m_gridMutex.Unlock();
 		});
 }
 
@@ -228,6 +239,7 @@ void AMPM3D_NeoHookean_Asnyc::P2G()
 	//============
 	for (int i = 0; i < NumParticles; ++i)
 	{
+		m_particleMutex.Lock();
 		Particle* p = m_pParticles[i];
 
 		PMatrix<float, 3, 3> stress(0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -272,6 +284,7 @@ void AMPM3D_NeoHookean_Asnyc::P2G()
 
 					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
 
+					m_gridMutex.Lock();
 					Cell* cell = m_pGrid[cell_index]; //[TODO] index out of error occurs
 					float weighted_mass = weight * p->mass;
 					cell->mass += weighted_mass;
@@ -282,16 +295,20 @@ void AMPM3D_NeoHookean_Asnyc::P2G()
 					cell->v += momentum;
 
 					m_pGrid[cell_index] = cell;
+					m_gridMutex.Unlock();
 				}
 			}
 		}
+		m_particleMutex.Unlock();
+
 	}
 }
 
 void AMPM3D_NeoHookean_Asnyc::UpdateGrid()
 {
-	/*ParallelFor(NumCells, [&](int32 i)
+	ParallelFor(NumCells, [&](int32 i)
 		{
+			m_gridMutex.Lock();
 			Cell* cell = m_pGrid[i];
 
 			if (cell->mass > 0)
@@ -317,9 +334,10 @@ void AMPM3D_NeoHookean_Asnyc::UpdateGrid()
 				}
 				m_pGrid[i] = cell;
 			}
-		});*/
+			m_gridMutex.Unlock();
+		});
 
-	for (int i = 0; i < NumCells; ++i)
+	/*for (int i = 0; i < NumCells; ++i)
 	{
 		Cell* cell = m_pGrid[i];
 
@@ -346,7 +364,7 @@ void AMPM3D_NeoHookean_Asnyc::UpdateGrid()
 			}
 			m_pGrid[i] = cell;
 		}
-	}
+	}*/
 }
 
 void AMPM3D_NeoHookean_Asnyc::G2P()
@@ -418,6 +436,7 @@ void AMPM3D_NeoHookean_Asnyc::G2P()
 	//====
 	for (int i = 0; i < NumParticles; ++i)
 	{
+		m_particleMutex.Lock();
 		Particle* p = m_pParticles[i];
 
 		p->v = { 0.f, 0.f, 0.f };
@@ -479,6 +498,7 @@ void AMPM3D_NeoHookean_Asnyc::G2P()
 		Fs[i] = Fp_new * Fs[i];
 
 		m_pParticles[i] = p;
+		m_particleMutex.Unlock();
 	}
 }
 
