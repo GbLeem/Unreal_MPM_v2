@@ -10,7 +10,7 @@ void ACUDA_Test::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	SimpleCUDATest();
+	//SimpleCUDATest();
 }
 
 void ACUDA_Test::Tick(float DeltaTime)

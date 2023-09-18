@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "cuda_lib_test.h"
-//#include "cuda_runtime.h"
+#include "cuda_runtime.h"
 #include "CUDA_Test.generated.h"
 
 UCLASS()

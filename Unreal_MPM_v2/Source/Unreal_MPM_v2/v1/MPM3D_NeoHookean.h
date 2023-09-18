@@ -61,7 +61,7 @@ public:
 	const float gravity = -0.3f;
 
 	const float elastic_lambda = 15.f;
-	const float elastic_mu = 400.f;
+	const float elastic_mu = 500.f;
 
 	TArray<Particle*> m_pParticles;
 	TArray<Cell*> m_pGrid;
