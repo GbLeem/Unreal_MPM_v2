@@ -47,7 +47,7 @@ void AMPM3D_NeoHookean::BeginPlay()
 	m_pParticles.Empty(NumParticles);
 	Fs.Empty(NumParticles);
 
-	UE_LOG(LogTemp, Log, TEXT("NUMPARTICLES : %d"), NumParticles);
+	//UE_LOG(LogTemp, Log, TEXT("NUMPARTICLES : %d"), NumParticles);
 	for (int i = 0; i < NumParticles; ++i)
 	{
 		Particle* p = new Particle();
@@ -127,13 +127,8 @@ void AMPM3D_NeoHookean::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	/*for (int i = 0; i < 5; ++i)
-	{
-		Simulate();
-	}*/
 	Simulate();
 	UpdateParticles();
-
 }
 
 void AMPM3D_NeoHookean::ClearGrid()

@@ -1,8 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "Runtime/Core/Public/Async/ParallelFor.h"
+#include "Async/Async.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Chaos/Matrix.h"
 
@@ -36,6 +35,8 @@ public:
 
 	void Simulate();
 	void UpdateParticles();
+
+	void SimulateParallel();
 
 public:
 	struct Cell
