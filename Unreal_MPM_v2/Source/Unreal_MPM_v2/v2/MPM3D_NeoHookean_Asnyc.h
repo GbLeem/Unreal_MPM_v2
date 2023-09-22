@@ -32,9 +32,16 @@ public:
 	void P2G();
 	void UpdateGrid();
 	void G2P();
-
+	
 	void Simulate();
 	void UpdateParticles();
+
+	void PClearGrid();
+	void PP2G();
+	void PUpdateGrid();
+	void PG2P();
+
+	void ParallelSimulate();
 
 	void SimulateParallel();
 
@@ -74,8 +81,5 @@ public:
 	TArray<Cell*> m_pGrid;
 	TArray<PMatrix<float, 3, 3>> Fs;
 	TArray<FVector3f> weights;
-
-public:
-	FCriticalSection m_particleMutex;
-	FCriticalSection m_gridMutex;
+	TArray<FTransform> Transforms;
 };

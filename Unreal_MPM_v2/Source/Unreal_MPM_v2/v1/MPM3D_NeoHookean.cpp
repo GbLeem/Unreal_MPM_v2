@@ -108,8 +108,6 @@ void AMPM3D_NeoHookean::BeginPlay()
 
 	if (InstancedStaticMeshComponent->GetInstanceCount() == 0)
 	{
-		TArray<FTransform> Transforms;
-
 		Transforms.Empty(NumParticles);
 
 		for (int i = 0; i < NumParticles; ++i)
@@ -318,8 +316,6 @@ void AMPM3D_NeoHookean::Simulate()
 
 void AMPM3D_NeoHookean::UpdateParticles()
 {
-	TArray<FTransform> Transforms;
-
 	Transforms.Empty(NumParticles);
 
 	for (int i = 0; i < NumParticles; ++i)

@@ -106,7 +106,7 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 
 	if (InstancedStaticMeshComponent->GetInstanceCount() == 0)
 	{
-		TArray<FTransform> Transforms;
+		//TArray<FTransform> Transforms;
 
 		Transforms.Empty(NumParticles);
 
@@ -309,15 +309,17 @@ void AMPM3D_NeoHookean_Asnyc::G2P()
 
 void AMPM3D_NeoHookean_Asnyc::Simulate()
 {
-	ClearGrid();
+	//ClearGrid();
+	PClearGrid();
 	P2G();
 	UpdateGrid();
+	//PUpdateGrid();
 	G2P();
 }
 
 void AMPM3D_NeoHookean_Asnyc::UpdateParticles()
 {
-	TArray<FTransform> Transforms;
+	//TArray<FTransform> Transforms;
 
 	Transforms.Empty(NumParticles);
 
@@ -328,6 +330,88 @@ void AMPM3D_NeoHookean_Asnyc::UpdateParticles()
 		InstancedStaticMeshComponent->UpdateInstanceTransform(i, Transforms[i]);
 	}
 	InstancedStaticMeshComponent->MarkRenderStateDirty();
+}
+
+void AMPM3D_NeoHookean_Asnyc::PClearGrid()
+{
+	ParallelFor(NumCells, [this](int32 i)
+		{
+			Cell* cell = m_pGrid[i];
+			cell->mass = 0;
+			cell->v = { 0.f,0.f,0.f }; 
+
+			m_pGrid[i] = cell;
+		});
+}
+
+void AMPM3D_NeoHookean_Asnyc::PP2G()
+{
+}
+
+void AMPM3D_NeoHookean_Asnyc::PUpdateGrid()
+{
+	ParallelFor(NumCells, [this](int32 i)
+		{
+			Cell* cell = m_pGrid[i];
+
+			if (cell->mass > 0)
+			{
+				cell->v /= cell->mass;
+				cell->v += dt * FVector3f(0, 0, gravity);
+
+				int x = i / (grid_res * grid_res);
+				int y = (i % (grid_res * grid_res)) / grid_res;
+				int z = i % grid_res;
+
+				if (x < 2 || x > grid_res - 3)
+				{
+					cell->v.X = 0;
+				}
+				if (y < 2 || y > grid_res - 3)
+				{
+					cell->v.Y = 0;
+				}
+				if (z < 2 || z > grid_res - 3)
+				{
+					cell->v.Z = 0;
+				}
+				m_pGrid[i] = cell;
+			}
+		});
+}
+
+void AMPM3D_NeoHookean_Asnyc::PG2P()
+{
+}
+
+void AMPM3D_NeoHookean_Asnyc::ParallelSimulate()
+{
+	//FQueuedThreadPool* ThreadPool = FQueuedThreadPool::Allocate();
+	//ThreadPool->Create(1);
+	//ThreadPool->AddQueuedWork(PClearGrid());
+	//FProfilerStartTrace ClearGridTrace(FString("ClearGrid"));
+	
+	/*Job_ClearGrid GridClearJob;
+	GridClearJob.grid = Grid;
+	FGraphEventRef ClearGridTask = FFunctionGraphTask::CreateAndDispatchWhenReady([PClearGrid()]() {
+		GridClearJob.Execute();
+		}, TStatId(), nullptr, ENamedThreads::AnyThread);*/
+
+
+
+	//FGraphEventRef ClearGridTask = Async(EAsyncExecution::ThreadPool, [this]()
+	//	{
+	//		// 작업을 여기에 수행
+	//		for (auto& Pair : Grid)
+	//		{
+	//			int32 i = Pair.Key;
+	//			Cell& cell = Pair.Value;
+
+	//			// reset grid scratch-pad entirely
+	//			cell.mass = 0.0f;
+	//			cell.v = FVector3f::ZeroVector;
+	//		}
+	//	});
 }
 
 void AMPM3D_NeoHookean_Asnyc::SimulateParallel()

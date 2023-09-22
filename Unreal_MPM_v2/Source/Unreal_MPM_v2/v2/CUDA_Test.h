@@ -1,11 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
+#define WIN32_LEAN_AND_MEAN
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "cuda_lib_test.h"
+
+#include <cuda_runtime.h>
+
+#include <helper_cuda.h>
+#include <helper_functions.h>
+#include <helper_math.h>
+
+#include <defines.h>
+
 #include "cuda_runtime.h"
+#include "cuda_lib_test.h"
+
 #include "CUDA_Test.generated.h"
 
 UCLASS()
