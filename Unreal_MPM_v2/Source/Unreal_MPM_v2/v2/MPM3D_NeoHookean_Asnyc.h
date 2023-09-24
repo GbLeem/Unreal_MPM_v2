@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/Core/Public/Async/ParallelFor.h"
 #include "Async/Async.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Chaos/Matrix.h"
@@ -35,15 +34,6 @@ public:
 	
 	void Simulate();
 	void UpdateParticles();
-
-	void PClearGrid();
-	void PP2G();
-	void PUpdateGrid();
-	void PG2P();
-
-	void ParallelSimulate();
-
-	void SimulateParallel();
 
 public:
 	struct Cell
@@ -82,4 +72,60 @@ public:
 	TArray<PMatrix<float, 3, 3>> Fs;
 	TArray<FVector3f> weights;
 	TArray<FTransform> Transforms;
+
+	FRunnableThread* MyThread;
+};
+
+class SimulateTask :public FRunnable
+{
+public:
+	SimulateTask(AMPM3D_NeoHookean_Asnyc* mpm)
+		:Owner(mpm) 
+	{
+		//FRunnableThread* MyThread = FRunnableThread::Create(new SimulateTask(this), TEXT("MyThread"), 0, TPri_Normal);
+	}
+
+	~SimulateTask()
+	{
+		if (Owner)
+		{
+			//Owner->Kill();
+			delete Owner;
+		}
+	}
+	bool Init() override
+	{
+		UE_LOG(LogTemp, Warning, TEXT("My custom thread has been initialized"));
+		return true;
+	}
+
+	uint32 Run() override
+	{
+		while (bRunThread)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("My custom thread is running!"));
+
+			//Owner->ClearGrid();
+			//Owner->P2G();
+			//Owner->UpdateGrid(); //[0925 : INDEX ERROR]
+			//Owner->G2P();
+			//Owner->UpdateParticles();
+			Owner->Simulate();
+		}
+		return 0;
+	}
+
+	void Stop() override
+	{
+		// 중지 작업 (옵션)
+		bRunThread = false;
+	}
+
+	void Exit() override
+	{
+		// 종료 작업 (옵션)
+	}
+private:
+	AMPM3D_NeoHookean_Asnyc* Owner;
+	bool bRunThread;
 };

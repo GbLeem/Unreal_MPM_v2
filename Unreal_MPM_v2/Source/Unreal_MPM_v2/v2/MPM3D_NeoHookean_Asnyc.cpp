@@ -45,7 +45,7 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 	m_pParticles.Empty(NumParticles);
 	Fs.Empty(NumParticles);
 
-	//UE_LOG(LogTemp, Log, TEXT("NUMPARTICLES : %d"), NumParticles);
+	UE_LOG(LogTemp, Log, TEXT("NUMPARTICLES : %d"), NumParticles);
 	for (int i = 0; i < NumParticles; ++i)
 	{
 		Particle* p = new Particle();
@@ -70,6 +70,7 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 	}
 
 	P2G();
+	
 
 	for (int i = 0; i < NumParticles; ++i)
 	{
@@ -117,17 +118,21 @@ void AMPM3D_NeoHookean_Asnyc::BeginPlay()
 		}
 		InstancedStaticMeshComponent->AddInstances(Transforms, false);
 	}
+
+	MyThread = FRunnableThread::Create(new SimulateTask(this), TEXT("MyThread"), 0, TPri_Normal);
 }
 
 // Called every frame
 void AMPM3D_NeoHookean_Asnyc::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	/*if (MyThread)
+	{
+		FPlatformProcess::Sleep(0.01f);
+	}*/
 
-	Simulate();
-	//SimulateParallel();
-	UpdateParticles();
-
+	//Simulate();
 }
 
 void AMPM3D_NeoHookean_Asnyc::ClearGrid()
@@ -183,7 +188,7 @@ void AMPM3D_NeoHookean_Asnyc::P2G()
 			{
 				for (int gz = 0; gz < 3; ++gz)
 				{
-					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
+					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z; //[0925INDEX ERROR]
 
 					FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
 					FVector3f cell_dist = FVector3f(cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f);
@@ -191,7 +196,7 @@ void AMPM3D_NeoHookean_Asnyc::P2G()
 
 					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
 
-					Cell* cell = m_pGrid[cell_index]; //[TODO] index out of error occurs
+					Cell* cell = m_pGrid[cell_index]; 
 					float weighted_mass = weight * p->mass;
 					cell->mass += weighted_mass;
 
@@ -263,16 +268,14 @@ void AMPM3D_NeoHookean_Asnyc::G2P()
 			{
 				for (int gz = 0; gz < 3; ++gz)
 				{
-					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
+					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z; //[0925 INDEX ERROR 2]
 
 					FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
 					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
 
 					FVector3f dist = { (cell_x.X - p->x.X) + 0.5f, (cell_x.Y - p->x.Y) + 0.5f, (cell_x.Z - p->x.Z) + 0.5f };
 					FVector3f weighted_velocity = m_pGrid[cell_index]->v * weight;
-
-					//right calculation
-					//PMatrix<float, 3, 3> term(weighted_velocity * dist.X, weighted_velocity * dist.Y, weighted_velocity * dist.Z);
+				
 					PMatrix<float, 3, 3> term;
 					term.M[0][0] = (weighted_velocity.X * dist.X);
 					term.M[1][0] = (weighted_velocity.Y * dist.X);
@@ -309,18 +312,15 @@ void AMPM3D_NeoHookean_Asnyc::G2P()
 
 void AMPM3D_NeoHookean_Asnyc::Simulate()
 {
-	//ClearGrid();
-	PClearGrid();
+	ClearGrid();
 	P2G();
 	UpdateGrid();
-	//PUpdateGrid();
 	G2P();
+	UpdateParticles();
 }
 
 void AMPM3D_NeoHookean_Asnyc::UpdateParticles()
 {
-	//TArray<FTransform> Transforms;
-
 	Transforms.Empty(NumParticles);
 
 	for (int i = 0; i < NumParticles; ++i)
@@ -330,122 +330,4 @@ void AMPM3D_NeoHookean_Asnyc::UpdateParticles()
 		InstancedStaticMeshComponent->UpdateInstanceTransform(i, Transforms[i]);
 	}
 	InstancedStaticMeshComponent->MarkRenderStateDirty();
-}
-
-void AMPM3D_NeoHookean_Asnyc::PClearGrid()
-{
-	ParallelFor(NumCells, [this](int32 i)
-		{
-			Cell* cell = m_pGrid[i];
-			cell->mass = 0;
-			cell->v = { 0.f,0.f,0.f }; 
-
-			m_pGrid[i] = cell;
-		});
-}
-
-void AMPM3D_NeoHookean_Asnyc::PP2G()
-{
-}
-
-void AMPM3D_NeoHookean_Asnyc::PUpdateGrid()
-{
-	ParallelFor(NumCells, [this](int32 i)
-		{
-			Cell* cell = m_pGrid[i];
-
-			if (cell->mass > 0)
-			{
-				cell->v /= cell->mass;
-				cell->v += dt * FVector3f(0, 0, gravity);
-
-				int x = i / (grid_res * grid_res);
-				int y = (i % (grid_res * grid_res)) / grid_res;
-				int z = i % grid_res;
-
-				if (x < 2 || x > grid_res - 3)
-				{
-					cell->v.X = 0;
-				}
-				if (y < 2 || y > grid_res - 3)
-				{
-					cell->v.Y = 0;
-				}
-				if (z < 2 || z > grid_res - 3)
-				{
-					cell->v.Z = 0;
-				}
-				m_pGrid[i] = cell;
-			}
-		});
-}
-
-void AMPM3D_NeoHookean_Asnyc::PG2P()
-{
-}
-
-void AMPM3D_NeoHookean_Asnyc::ParallelSimulate()
-{
-	//FQueuedThreadPool* ThreadPool = FQueuedThreadPool::Allocate();
-	//ThreadPool->Create(1);
-	//ThreadPool->AddQueuedWork(PClearGrid());
-	//FProfilerStartTrace ClearGridTrace(FString("ClearGrid"));
-	
-	/*Job_ClearGrid GridClearJob;
-	GridClearJob.grid = Grid;
-	FGraphEventRef ClearGridTask = FFunctionGraphTask::CreateAndDispatchWhenReady([PClearGrid()]() {
-		GridClearJob.Execute();
-		}, TStatId(), nullptr, ENamedThreads::AnyThread);*/
-
-
-
-	//FGraphEventRef ClearGridTask = Async(EAsyncExecution::ThreadPool, [this]()
-	//	{
-	//		// 작업을 여기에 수행
-	//		for (auto& Pair : Grid)
-	//		{
-	//			int32 i = Pair.Key;
-	//			Cell& cell = Pair.Value;
-
-	//			// reset grid scratch-pad entirely
-	//			cell.mass = 0.0f;
-	//			cell.v = FVector3f::ZeroVector;
-	//		}
-	//	});
-}
-
-void AMPM3D_NeoHookean_Asnyc::SimulateParallel()
-{
-	/*Async(EAsyncExecution::Thread, [this]()
-		{
-			ClearGrid();
-		});
-	Async(EAsyncExecution::Thread, [this]()
-		{
-			P2G();
-		});
-	Async(EAsyncExecution::Thread, [this]()
-		{
-			UpdateGrid();
-		});
-	Async(EAsyncExecution::Thread, [this]()
-		{
-			G2P();
-		});*/
-
-	// 작업을 비동기로 실행
-	FGraphEventRef ClearGridTask = FFunctionGraphTask::CreateAndDispatchWhenReady([this]()
-		{
-			// Job_ClearGrid를 Unreal Engine의 스레딩 메커니즘에 맞게 수정하여 사용합니다.
-			// Unreal Engine에서의 스레딩 및 병렬 처리 코드를 작성해야 합니다.
-			// 예: Grid->ClearGrid();
-			ClearGrid();
-		}, TStatId(), nullptr, ENamedThreads::AnyThread);
-
-	// 작업이 완료될 때까지 대기
-	FGraphEventArray WaitTasks;
-	WaitTasks.Add(ClearGridTask);
-	FGraphEventRef CompleteTask = FFunctionGraphTask::CreateAndDispatchWhenReady([]() {}, TStatId(), nullptr, ENamedThreads::AnyThread);
-	//FGraphEvent::WaitUntilTasksComplete(WaitTasks);
-	//FTaskGraphInterface::WaitUntilTasksComplete(WaitTasks, ENamedThreads::AnyThread);
 }

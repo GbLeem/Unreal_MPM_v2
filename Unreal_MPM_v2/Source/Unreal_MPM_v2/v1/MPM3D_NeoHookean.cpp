@@ -13,7 +13,6 @@ AMPM3D_NeoHookean::AMPM3D_NeoHookean()
 	InstancedStaticMeshComponent->SetMobility(EComponentMobility::Static);
 	InstancedStaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	InstancedStaticMeshComponent->SetGenerateOverlapEvents(false);
-
 }
 
 // Called when the game starts or when spawned
@@ -125,7 +124,11 @@ void AMPM3D_NeoHookean::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	Simulate();
+	//Simulate(); //[TEST]
+	ClearGrid();
+	P2G();
+	UpdateGrid();
+	G2P();
 	UpdateParticles();
 }
 
@@ -183,6 +186,7 @@ void AMPM3D_NeoHookean::P2G()
 				for (int gz = 0; gz < 3; ++gz)
 				{
 					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
+					//UE_LOG(LogTemp, Warning, TEXT("P2G weight..! : %f"), weight);
 
 					FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
 					FVector3f cell_dist = FVector3f(cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f);
@@ -263,6 +267,7 @@ void AMPM3D_NeoHookean::G2P()
 				for (int gz = 0; gz < 3; ++gz)
 				{
 					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
+					//UE_LOG(LogTemp, Warning, TEXT("G2P weight..! : %f"), weight);
 
 					FIntVector cell_x = FIntVector(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
 					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;

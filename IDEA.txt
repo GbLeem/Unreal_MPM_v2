@@ -73,3 +73,16 @@ nsight 23.1 다운했고, cuda12.2 다운함
 9/21
 만약 멀티스레딩을 한다 쳤을때, 이전에 실행한 결과물이 다음에 영향을 미치면 안되기 때문에...
 P2G가 끝나야 다음 Clear Grid를 할 수 있는데 멀티스레딩을 언제하지?
+
+
+9/24
+instanced static mesh component의 경우 material 설정하려면 머티리얼에서 instanced static mesh 에서 쓴다고 설정해야함
+투명한 메시의 경우 blend mode를 translucent로 바꾸기
+
+9/25 
+MultithreadingEX 만들어서 테스트 제대로 했는지는 모르지만.. 암튼 두배의 fps 나옴,,
+지금 Neo_Asnyc도 처음에 2배 뜨는거 같은데 인덱스 오류로 튕김
+
+https://velog.io/@go4521304/%EC%96%B8%EB%A6%AC%EC%96%BC-%EC%97%94%EC%A7%84-%EC%86%8C%EC%BC%93-%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D-2-Send-Recv-%EC%93%B0%EB%A0%88%EB%93%9C-%EC%83%9D%EC%84%B1
+https://www.cnblogs.com/shiroe/p/14720397.html
+

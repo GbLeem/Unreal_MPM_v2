@@ -48,7 +48,7 @@ public:
 	};
 
 public:
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(BluePrintReadWrite, VisibleAnywhere)
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent;
 
 	int NumParticles = 0;
@@ -58,7 +58,7 @@ public:
 
 	const float dt = 0.1f;
 	const float iterations = (int)(1.f / dt);
-	const float gravity = -0.3f;
+	const float gravity = -0.5f;
 
 	const float elastic_lambda = 15.f;
 	const float elastic_mu = 500.f;
