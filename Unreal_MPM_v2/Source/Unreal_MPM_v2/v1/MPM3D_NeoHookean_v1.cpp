@@ -20,30 +20,22 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 	TArray<FVec3f> TempPositions;
 
 	const float spacing = 0.5f;
-	const int box = 8;
-	/*const int box_y = 8;
-	const int box_z = 8;*/
-	const float sx = grid_res / 2.f;
-	const float sy = grid_res / 2.f;
-	const float sz = grid_res / 2.f;
-
-	for (float i = -box / 2; i < box / 2; i += spacing) //-16+16
+	const int box = 4;
+	const float s = 32.f;
+	
+	for (float i = -box ; i < box; i += spacing) //-16+16
 	{
-		for (float j = -box / 2; j < box / 2; j += spacing)
+		for (float j = -box; j < box; j += spacing)
 		{
-			for (float k = -box / 2; k < box / 2; k += spacing)
+			for (float k = -box; k < box; k += spacing)
 			{
-				auto Pos = FVec3f(sx + i, sy + j, sz + k);
-				TempPositions.Add(Pos);
+				TempPositions.Add(FVec3f{ s + i, s + j, s + k });
 			}
 		}
 	}
 
 	NumParticles = TempPositions.Num();
-	m_pParticles.Empty(NumParticles);
-	Fs.Empty(NumParticles);
 
-	//UE_LOG(LogTemp, Log, TEXT("NUMPARTICLES : %d"), NumParticles);
 	for (int i = 0; i < NumParticles; ++i)
 	{
 		Particle* p = new Particle();
@@ -54,8 +46,7 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 
 		m_pParticles.Add(p);
 
-		PMatrix<float, 3, 3> temp(1, 1, 1);
-		Fs.Add(temp);
+		Fs.Add(FMatrix33{ 1.f, 1.f, 1.f});
 	}
 
 	m_pGrid.Empty(NumCells);
@@ -73,8 +64,8 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 	{
 		Particle* p = m_pParticles[i];
 
-		FVec3f cell_idx = { (float)floor(p->x.X), (float)floor(p->x.Y) ,(float)floor(p->x.Z) };
-		FVec3f cell_diff = { (p->x.X - cell_idx.X - 0.5f), (p->x.Y - cell_idx.Y - 0.5f), (p->x.Z - cell_idx.Z - 0.5f) };
+		FVec3f cell_idx{floorf(p->x.X), floorf(p->x.Y) ,floorf(p->x.Z) };
+		FVec3f cell_diff{ (p->x.X - cell_idx.X - 0.5f), (p->x.Y - cell_idx.Y - 0.5f), (p->x.Z - cell_idx.Z - 0.5f) };
 
 		weights.Empty(3);
 		weights.Add({ 0.5f * (float)pow(0.5f - cell_diff.X, 2), 0.5f * (float)pow(0.5f - cell_diff.Y, 2),0.5f * (float)pow(0.5f - cell_diff.Z, 2) });
@@ -108,7 +99,7 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 
 		for (int i = 0; i < NumParticles; ++i)
 		{
-			FTransform tempValue = FTransform(FVec3(m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f));
+			FTransform tempValue = FTransform(FVec3(m_pParticles[i]->x.X * 100., m_pParticles[i]->x.Y * 100., m_pParticles[i]->x.Z * 100.));
 			Transforms.Add(tempValue);
 		}
 		InstancedStaticMeshComponent->AddInstances(Transforms, false);
@@ -145,33 +136,31 @@ void AMPM3D_NeoHookean_v1::P2G()
 	{
 		Particle* p = m_pParticles[i];
 
-		PMatrix<float, 3, 3> stress(0, 0, 0, 0, 0, 0, 0, 0, 0);
+		PMatrix<float, 3, 3> stress{ 0.f,0.f,0.f };
 
 		PMatrix<float, 3, 3> F = Fs[i];
 
-		float J = F.Determinant();
+		float J = F.RotDeterminant();
 
 		float volume = p->volume_0 * J;
 
-		PMatrix<float, 3, 3> F_T = F.GetTransposed();
-		PMatrix<float, 3, 3> F_inv_T = F_T.Inverse();
-		PMatrix<float, 3, 3> F_minus_F_inv_T = F - F_inv_T;
+		PMatrix<float, 3, 3> F_inv_T = F.GetTransposed().InverseFast();
 
-		PMatrix<float, 3, 3> P_term_0 = elastic_mu * F_minus_F_inv_T;
+		PMatrix<float, 3, 3> P_term_0 = elastic_mu * (F - F_inv_T);
 		PMatrix<float, 3, 3> P_term_1 = elastic_lambda * log(J) * F_inv_T;
 		PMatrix<float, 3, 3> P = P_term_0 + P_term_1;
 
-		stress = (1.f / J) * (P * F_T);
+		stress = (1.f / J) * (P * F.GetTransposed());
 
 		PMatrix<float, 3, 3> eq_16_term_0 = -volume * 2 * stress * dt; // [digit 2 is hyper parameter]
 
-		TVec3<int> cell_idx = TVec3<int>(p->x.X, p->x.Y, p->x.Z);
-		FVec3f cell_diff = FVec3f(p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f);
+		TVec3<int> cell_idx{ (int)p->x.X, (int)p->x.Y, (int)p->x.Z };
+		FVec3f cell_diff{ p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f };
 
 		weights.Empty(3);
-		weights.Add({ 0.5f * (float)pow(0.5f - cell_diff.X, 2), 0.5f * (float)pow(0.5f - cell_diff.Y, 2),0.5f * (float)pow(0.5f - cell_diff.Z, 2) });
-		weights.Add({ 0.75f - (float)pow(cell_diff.X, 2), 0.75f - (float)pow(cell_diff.Y, 2), 0.75f - (float)pow(cell_diff.Z, 2) });
-		weights.Add({ 0.5f * (float)pow(0.5f + cell_diff.X, 2), 0.5f * (float)pow(0.5f + cell_diff.Y, 2), 0.5f * (float)pow(0.5f + cell_diff.Z, 2) });
+		weights.Add({ 0.5f * powf(0.5f - cell_diff.X, 2), 0.5f * powf(0.5f - cell_diff.Y, 2),0.5f * powf(0.5f - cell_diff.Z, 2) });
+		weights.Add({ 0.75f - powf(cell_diff.X, 2), 0.75f - powf(cell_diff.Y, 2), 0.75f - powf(cell_diff.Z, 2) });
+		weights.Add({ 0.5f * powf(0.5f + cell_diff.X, 2), 0.5f * powf(0.5f + cell_diff.Y, 2), 0.5f * powf(0.5f + cell_diff.Z, 2) });
 
 		for (int gx = 0; gx < 3; ++gx)
 		{
@@ -180,10 +169,9 @@ void AMPM3D_NeoHookean_v1::P2G()
 				for (int gz = 0; gz < 3; ++gz)
 				{
 					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
-					//UE_LOG(LogTemp, Warning, TEXT("P2G weight..! : %f"), weight);
 
-					TVec3<int> cell_x = TVec3<int>(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
-					FVec3f cell_dist = FVec3f(cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f);
+					TVec3<int> cell_x{ cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1 };
+					FVec3f cell_dist{ cell_x.X - p->x.X + 0.5f, cell_x.Y - p->x.Y + 0.5f, cell_x.Z - p->x.Z + 0.5f };
 					FVec3f Q = p->C * cell_dist;
 
 					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
@@ -244,15 +232,15 @@ void AMPM3D_NeoHookean_v1::G2P()
 
 		p->v = { 0.f, 0.f, 0.f };
 
-		TVec3<int> cell_idx = TVec3<int>(p->x.X, p->x.Y, p->x.Z);
+		FIntVector cell_idx = FIntVector(p->x.X, p->x.Y, p->x.Z);
 		FVec3f cell_diff = { p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f };
 
 		weights.Empty(3);
-		weights.Add({ 0.5f * (float)pow(0.5f - cell_diff.X, 2), 0.5f * (float)pow(0.5f - cell_diff.Y, 2), 0.5f * (float)pow(0.5f - cell_diff.Z, 2) });
-		weights.Add({ 0.75f - (float)pow(cell_diff.X, 2), 0.75f - (float)pow(cell_diff.Y, 2), 0.75f - (float)pow(cell_diff.Z, 2) });
-		weights.Add({ 0.5f * (float)pow(0.5f + cell_diff.X, 2), 0.5f * (float)pow(0.5f + cell_diff.Y, 2), 0.5f * (float)pow(0.5f + cell_diff.Z, 2) });
+		weights.Add({ 0.5f * powf(0.5f - cell_diff.X, 2), 0.5f *powf(0.5f - cell_diff.Y, 2), 0.5f * powf(0.5f - cell_diff.Z, 2) });
+		weights.Add({ 0.75f - powf(cell_diff.X, 2), 0.75f - powf(cell_diff.Y, 2), 0.75f - powf(cell_diff.Z, 2) });
+		weights.Add({ 0.5f * powf(0.5f + cell_diff.X, 2), 0.5f * powf(0.5f + cell_diff.Y, 2), 0.5f * powf(0.5f + cell_diff.Z, 2) });
 
-		PMatrix<float, 3, 3> B;
+		PMatrix<float, 3, 3> B{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
 
 		for (int gx = 0; gx < 3; ++gx)
 		{
@@ -260,29 +248,16 @@ void AMPM3D_NeoHookean_v1::G2P()
 			{
 				for (int gz = 0; gz < 3; ++gz)
 				{
-					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
-					//UE_LOG(LogTemp, Warning, TEXT("G2P weight..! : %f"), weight);
+					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;					
 
-					TVec3<int> cell_x = TVec3<int>(cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1);
-					int cell_index = (int)cell_x.X * grid_res * grid_res + (int)cell_x.Y * grid_res + (int)cell_x.Z;
+					TVec3<int> cell_x{ cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1 };
+					int cell_index = cell_x.X * grid_res * grid_res + cell_x.Y * grid_res + cell_x.Z;
 
-					FVec3f dist = { (cell_x.X - p->x.X) + 0.5f, (cell_x.Y - p->x.Y) + 0.5f, (cell_x.Z - p->x.Z) + 0.5f };
+					FVec3f dist{ (cell_x.X - p->x.X) + 0.5f, (cell_x.Y - p->x.Y) + 0.5f, (cell_x.Z - p->x.Z) + 0.5f };
 					FVec3f weighted_velocity = m_pGrid[cell_index]->v * weight;
 
 					//right calculation
-					//PMatrix<float, 3, 3> term(weighted_velocity * dist.X, weighted_velocity * dist.Y, weighted_velocity * dist.Z);
-					PMatrix<float, 3, 3> term;
-					term.M[0][0] = (weighted_velocity.X * dist.X);
-					term.M[1][0] = (weighted_velocity.Y * dist.X);
-					term.M[2][0] = (weighted_velocity.Z * dist.X);
-
-					term.M[0][1] = (weighted_velocity.X * dist.Y);
-					term.M[1][1] = (weighted_velocity.Y * dist.Y);
-					term.M[2][1] = (weighted_velocity.Z * dist.Y);
-
-					term.M[0][2] = (weighted_velocity.X * dist.Z);
-					term.M[1][2] = (weighted_velocity.Y * dist.Z);
-					term.M[2][2] = (weighted_velocity.Z * dist.Z);
+					PMatrix<float, 3, 3> term{ dist.X * weighted_velocity, dist.Y * weighted_velocity, dist.Z * weighted_velocity };					
 
 					B += term;
 					p->v += weighted_velocity;
@@ -292,12 +267,12 @@ void AMPM3D_NeoHookean_v1::G2P()
 		p->C = B * 2; // [digit 2 is hyper parametes]
 		p->x += p->v * dt;
 
-		p->x.X = FMath::Clamp(p->x.X, 1, grid_res - 2);
-		p->x.Y = FMath::Clamp(p->x.Y, 1, grid_res - 2);
-		p->x.Z = FMath::Clamp(p->x.Z, 1, grid_res - 2);
+		p->x.X = FMath::Clamp(p->x.X, 1.f, (float)grid_res - 2);
+		p->x.Y = FMath::Clamp(p->x.Y, 1.f, (float)grid_res - 2);
+		p->x.Z = FMath::Clamp(p->x.Z, 1.f, (float)grid_res - 2);
 
-		PMatrix<float, 3, 3> Fp_new(1, 0, 0, 0, 1, 0, 0, 0, 1);
-
+		PMatrix<float, 3, 3> Fp_new{ 1.f,1.f,1.f };
+		
 		Fp_new += dt * p->C;
 		Fs[i] = Fp_new * Fs[i];
 
@@ -312,8 +287,7 @@ void AMPM3D_NeoHookean_v1::UpdateParticles()
 
 	for (int i = 0; i < NumParticles; ++i)
 	{
-		FTransform tempValue = FTransform(FVec3(m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f));
-		Transforms.Add(tempValue);
+		Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f }));
 		InstancedStaticMeshComponent->UpdateInstanceTransform(i, Transforms[i]);
 	}
 	InstancedStaticMeshComponent->MarkRenderStateDirty();

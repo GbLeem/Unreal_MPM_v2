@@ -90,3 +90,13 @@ FRunnable
 create 실행 가능한 스레드 객체 만들기
 
 0925 17:54 FVector3f 와 FIntVector 데이터를 chaos의 데이터 타입으로 바꿔서 성능 향상 시킴
+box_x 바꿔서 그런것... 근데 box_x 가 2배 작아지면 성능은 20ms -> 90ms로 바뀜
+
+==바꾸고 있는 것==
+1. 
+FVec3f cell_idx{floor(p->x.X), floor(p->x.Y) ,floor(p->x.Z) };
+위에 코드가 아래 코드보다 빠름
+FVector3f cell_idx = { (float)floor(p->x.X), (float)floor(p->x.Y) ,(float)floor(p->x.Z) };
+
+2.
+(float) 등의 casting 없애고 powf() 함수를 사용

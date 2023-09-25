@@ -23,9 +23,9 @@ void AMPM3D_NeoHookean::BeginPlay()
 	TArray<FVector3f> TempPositions;
 
 	const float spacing = 0.5f;
-	const int box_x = 16;
-	const int box_y = 16;
-	const int box_z = 16;
+	const int box_x = 8;
+	const int box_y = 8;
+	const int box_z = 8;
 	const float sx = grid_res / 2.f;
 	const float sy = grid_res / 2.f;
 	const float sz = grid_res / 2.f;
