@@ -68,4 +68,6 @@ public:
 	TArray<PMatrix<float, 3, 3>> Fs;
 	TArray<FVec3f> weights;
 	TArray<FTransform> Transforms;
+
+	FCriticalSection Mutex;
 };

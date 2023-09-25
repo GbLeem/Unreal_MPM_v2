@@ -20,7 +20,7 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 	TArray<FVec3f> TempPositions;
 
 	const float spacing = 0.5f;
-	const int box = 4;
+	const int box = 8;
 	const float s = 32.f;
 	
 	for (float i = -box ; i < box; i += spacing) //-16+16
@@ -35,7 +35,7 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 	}
 
 	NumParticles = TempPositions.Num();
-
+	//UE_LOG(LogTemp, Warning, TEXT("%d"), NumParticles);
 	for (int i = 0; i < NumParticles; ++i)
 	{
 		Particle* p = new Particle();
@@ -99,8 +99,8 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 
 		for (int i = 0; i < NumParticles; ++i)
 		{
-			FTransform tempValue = FTransform(FVec3(m_pParticles[i]->x.X * 100., m_pParticles[i]->x.Y * 100., m_pParticles[i]->x.Z * 100.));
-			Transforms.Add(tempValue);
+			//FTransform tempValue = ;
+			Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100., m_pParticles[i]->x.Y * 100., m_pParticles[i]->x.Z * 100. }));
 		}
 		InstancedStaticMeshComponent->AddInstances(Transforms, false);
 	}
@@ -119,7 +119,7 @@ void AMPM3D_NeoHookean_v1::Tick(float DeltaTime)
 
 void AMPM3D_NeoHookean_v1::ClearGrid()
 {
-	for (int i = 0; i < NumCells; ++i)
+	/*for (int i = 0; i < NumCells; ++i)
 	{
 		Cell* cell = m_pGrid[i];
 
@@ -127,7 +127,20 @@ void AMPM3D_NeoHookean_v1::ClearGrid()
 		cell->v = { 0.f,0.f,0.f };
 
 		m_pGrid[i] = cell;
-	}
+	}*/
+
+
+	ParallelFor(NumCells, [&](int32 i)
+		{
+			//Mutex.Lock();
+			Cell* cell = m_pGrid[i];
+
+			cell->mass = 0;
+			cell->v = { 0.f,0.f,0.f };
+
+			m_pGrid[i] = cell;
+			//Mutex.Unlock();
+	}, false);
 }
 
 void AMPM3D_NeoHookean_v1::P2G()
@@ -194,7 +207,7 @@ void AMPM3D_NeoHookean_v1::P2G()
 
 void AMPM3D_NeoHookean_v1::UpdateGrid()
 {
-	for (int i = 0; i < NumCells; ++i)
+	/*for (int i = 0; i < NumCells; ++i)
 	{
 		Cell* cell = m_pGrid[i];
 
@@ -221,7 +234,35 @@ void AMPM3D_NeoHookean_v1::UpdateGrid()
 			}
 			m_pGrid[i] = cell;
 		}
-	}
+	}*/
+	ParallelFor(NumCells, [&](int32 i)
+	{
+		Cell* cell = m_pGrid[i];
+
+		if (cell->mass > 0)
+		{
+			cell->v /= cell->mass;
+			cell->v += dt * FVector3f(0, 0, gravity);
+
+			int x = i / (grid_res * grid_res);
+			int y = (i % (grid_res * grid_res)) / grid_res;
+			int z = i % grid_res;
+
+			if (x < 2 || x > grid_res - 3)
+			{
+				cell->v.X = 0;
+			}
+			if (y < 2 || y > grid_res - 3)
+			{
+				cell->v.Y = 0;
+			}
+			if (z < 2 || z > grid_res - 3)
+			{
+				cell->v.Z = 0;
+			}
+			m_pGrid[i] = cell;
+		}
+	});
 }
 
 void AMPM3D_NeoHookean_v1::G2P()
@@ -292,6 +333,3 @@ void AMPM3D_NeoHookean_v1::UpdateParticles()
 	}
 	InstancedStaticMeshComponent->MarkRenderStateDirty();
 }
-
-
-

@@ -82,7 +82,6 @@ public:
 	SimulateTask(AMPM3D_NeoHookean_Asnyc* mpm)
 		:Owner(mpm) 
 	{
-		//FRunnableThread* MyThread = FRunnableThread::Create(new SimulateTask(this), TEXT("MyThread"), 0, TPri_Normal);
 	}
 
 	~SimulateTask()
@@ -117,13 +116,7 @@ public:
 
 	void Stop() override
 	{
-		// 중지 작업 (옵션)
 		bRunThread = false;
-	}
-
-	void Exit() override
-	{
-		// 종료 작업 (옵션)
 	}
 private:
 	AMPM3D_NeoHookean_Asnyc* Owner;
