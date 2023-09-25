@@ -35,9 +35,25 @@ void AMultithreadingEX::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//FRunnableThread* MyThread = FRunnableThread::Create(new Simulate(this), TEXT("MyThread"), 0, TPri_Normal);
-	Function1();
+	/*Function1();
 	Function2();
-	Function3();
+	Function3();*/
+	Simulate* Worker = new Simulate();
+
+	if (Worker)
+	{
+		if (!Worker->bInputReady)
+		{
+			// Read and write the variables here
+			Worker->ExampleIntInput = 3141592;
+			UE_LOG(LogTemp, Warning, TEXT("Game thread: value gotten from worker thread: %f"), Worker->ExampleFloatOutput)
+
+
+				// Flick the switch to let the worker thread run
+				// Do not read/write variables from thread from here on!
+				Worker->bInputReady = true;
+		}
+	}
 }
 
 void AMultithreadingEX::Function1()

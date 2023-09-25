@@ -86,3 +86,7 @@ MultithreadingEX 만들어서 테스트 제대로 했는지는 모르지만.. �
 https://velog.io/@go4521304/%EC%96%B8%EB%A6%AC%EC%96%BC-%EC%97%94%EC%A7%84-%EC%86%8C%EC%BC%93-%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D-2-Send-Recv-%EC%93%B0%EB%A0%88%EB%93%9C-%EC%83%9D%EC%84%B1
 https://www.cnblogs.com/shiroe/p/14720397.html
 
+FRunnable
+create 실행 가능한 스레드 객체 만들기
+
+0925 17:54 FVector3f 와 FIntVector 데이터를 chaos의 데이터 타입으로 바꿔서 성능 향상 시킴
