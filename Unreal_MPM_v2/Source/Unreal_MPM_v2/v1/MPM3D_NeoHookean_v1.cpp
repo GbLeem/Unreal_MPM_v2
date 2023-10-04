@@ -140,7 +140,7 @@ void AMPM3D_NeoHookean_v1::ClearGrid()
 
 			m_pGrid[i] = cell;
 			//Mutex.Unlock();
-	}, false);
+	});
 }
 
 void AMPM3D_NeoHookean_v1::P2G()
