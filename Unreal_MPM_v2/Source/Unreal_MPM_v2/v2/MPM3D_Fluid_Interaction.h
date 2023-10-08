@@ -55,7 +55,7 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* Ball;
 
-	FTransform BallPos;
+	FVector BallPos;
 
 	int NumParticles;
 

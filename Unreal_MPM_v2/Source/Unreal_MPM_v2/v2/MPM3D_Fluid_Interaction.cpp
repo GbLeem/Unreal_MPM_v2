@@ -81,7 +81,7 @@ void AMPM3D_Fluid_Interaction::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	BallPos = Ball->GetRelativeTransform();
+	BallPos = Ball->GetComponentLocation();
 	Ball->AddForce(FVector(0, 0, -10.f));
 	
 	//UE_LOG(LogTemp, Warning, TEXT("BallPos %f, %f, %f"), BallPos.X, BallPos.Y, BallPos.Z);
@@ -307,12 +307,13 @@ void AMPM3D_Fluid_Interaction::G2P()
 
 		//Interaction
 		{
-			//FVector3f dist_sphere = { float(p->x.X - BallPos.X), float(p->x.Y - BallPos.Y), float(p->x.Z - BallPos.Z) };
-			FVector3f dist_sphere = {
-				float(p->x.X - BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().X),
-				float(p->x.Y - BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().Y),
-				float(p->x.Z - BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().Z) };
-			auto force = dist_sphere.Normalize() * 0.1f;
+			FVector3f dist_sphere = { float(p->x.X - BallPos.X), float(p->x.Y - BallPos.Y), float(p->x.Z - BallPos.Z) };
+			/*FVector3f dist_sphere = {
+				float(p->x.X - BallPos.GetRelativeTransform(FTransform(FVector(p->x))).GetLocation().X),
+				float(p->x.Y - BallPos.GetRelativeTransform(FTransform(FVector(p->x))).GetLocation().Y),
+				float(p->x.Z - BallPos.GetRelativeTransform(FTransform(FVector(p->x))).GetLocation().Z) };*/
+
+			auto force = dist_sphere.Normalize(0.f);
 
 			p->v.X += force;
 			p->v.Y += force;
