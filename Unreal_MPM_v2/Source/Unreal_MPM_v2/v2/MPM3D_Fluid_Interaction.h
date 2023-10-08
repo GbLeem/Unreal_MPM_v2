@@ -53,7 +53,7 @@ public:
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent;
 
 	UPROPERTY(VisibleAnywhere)
-		UStaticMeshComponent* Ball;
+	UStaticMeshComponent* Ball;
 
 	FTransform BallPos;
 

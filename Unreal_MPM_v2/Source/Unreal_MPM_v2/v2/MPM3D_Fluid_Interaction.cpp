@@ -72,8 +72,6 @@ void AMPM3D_Fluid_Interaction::BeginPlay()
 			FTransform tempValue = FTransform(FVector(m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f));
 			Transforms.Add(tempValue);			
 		}
-		FTransform tempValue2 = FTransform(FRotator(), FVector(m_pParticles[NumParticles]->x.X * 100.f, m_pParticles[NumParticles]->x.Y * 100.f, m_pParticles[NumParticles]->x.Z * 100.f), FVector(5.f, 5.f, 5.f));
-		Transforms.Add(tempValue2);
 
 		InstancedStaticMeshComponent->AddInstances(Transforms, false);
 	}
@@ -83,10 +81,14 @@ void AMPM3D_Fluid_Interaction::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	BallPos = Ball->GetComponentTransform();
+	BallPos = Ball->GetRelativeTransform();
 	Ball->AddForce(FVector(0, 0, -10.f));
-	//UE_LOG(LogTemp, Warning, TEXT("BallPos %f, %f, %f"), BallPos.GetLocation().X, BallPos.GetLocation().Y, BallPos.GetLocation().Z);
 	
+	//UE_LOG(LogTemp, Warning, TEXT("BallPos %f, %f, %f"), BallPos.X, BallPos.Y, BallPos.Z);
+	/*UE_LOG(LogTemp, Warning, TEXT("BallPos %f, %f, %f"), BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().X,
+		BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().Y,
+		BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().Z);*/
+
 	ClearGrid();
 	P2G_1();
 	P2G_2();
@@ -110,7 +112,7 @@ void AMPM3D_Fluid_Interaction::ClearGrid()
 
 void AMPM3D_Fluid_Interaction::P2G_1()
 {
-	for (int i = 0; i < TotalParticle; ++i)
+	for (int i = 0; i < NumParticles; ++i)
 	{
 		Particle* p = m_pParticles[i];
 
@@ -152,7 +154,7 @@ void AMPM3D_Fluid_Interaction::P2G_1()
 
 void AMPM3D_Fluid_Interaction::P2G_2()
 {
-	for (int i = 0; i < TotalParticle; ++i)
+	for (int i = 0; i < NumParticles; ++i)
 	{
 		Particle* p = m_pParticles[i];
 
@@ -257,7 +259,7 @@ void AMPM3D_Fluid_Interaction::UpdateGrid()
 
 void AMPM3D_Fluid_Interaction::G2P()
 {
-	for (int i = 0; i < TotalParticle; ++i)
+	for (int i = 0; i < NumParticles; ++i)
 	{
 		Particle* p = m_pParticles[i];
 
@@ -305,8 +307,12 @@ void AMPM3D_Fluid_Interaction::G2P()
 
 		//Interaction
 		{
-			FVector3f dist_sphere = { float(p->x.X - BallPos.GetLocation().X), float(p->x.Y - BallPos.GetLocation().Y), float(p->x.Z - BallPos.GetLocation().Z) };
-			auto force = dist_sphere.Normalize() * 0.05f;
+			//FVector3f dist_sphere = { float(p->x.X - BallPos.X), float(p->x.Y - BallPos.Y), float(p->x.Z - BallPos.Z) };
+			FVector3f dist_sphere = {
+				float(p->x.X - BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().X),
+				float(p->x.Y - BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().Y),
+				float(p->x.Z - BallPos.GetRelativeTransform(InstancedStaticMeshComponent->GetRelativeTransform()).GetLocation().Z) };
+			auto force = dist_sphere.Normalize() * 0.1f;
 
 			p->v.X += force;
 			p->v.Y += force;
@@ -342,21 +348,14 @@ void AMPM3D_Fluid_Interaction::UpdateParticles()
 {
 	TArray<FTransform> Transforms;
 
-	Transforms.Empty(TotalParticle);
+	Transforms.Empty(NumParticles);
 
-	for (int i = 0; i < TotalParticle; ++i)
+	for (int i = 0; i < NumParticles; ++i)
 	{
 		FTransform tempValue = FTransform(FVector(m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f));
 		Transforms.Add(tempValue);
-		if (i == NumParticles)
-		{
-			FTransform tempValue2 = FTransform(FRotator(), FVector(m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f), FVector(5.f, 5.f, 5.f));
-			Transforms[i] = tempValue2;
-		}
-
 		InstancedStaticMeshComponent->UpdateInstanceTransform(i, Transforms[i]);
 	}
-	
 	InstancedStaticMeshComponent->MarkRenderStateDirty();
 }
 
