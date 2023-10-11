@@ -40,7 +40,7 @@ void AMPM3D_fluid::BeginPlay()
 	while (po2_amnt <= TempPositions.Num())
 		po2_amnt <<= 1;
 	NumParticles = po2_amnt >> 1;
-
+	//UE_LOG(LogTemp, Warning, TEXT("%d"), NumParticles);
 	m_pParticles.Empty(NumParticles); //make particle array
 
 	for (int i = 0; i < NumParticles; ++i)

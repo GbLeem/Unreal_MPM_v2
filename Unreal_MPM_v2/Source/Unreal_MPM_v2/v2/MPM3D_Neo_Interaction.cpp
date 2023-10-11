@@ -1,6 +1,7 @@
-#include "MPM3D_NeoHookean_v1.h"
 
-AMPM3D_NeoHookean_v1::AMPM3D_NeoHookean_v1()
+#include "MPM3D_Neo_Interaction.h"
+
+AMPM3D_Neo_Interaction::AMPM3D_Neo_Interaction()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -11,19 +12,21 @@ AMPM3D_NeoHookean_v1::AMPM3D_NeoHookean_v1()
 	InstancedStaticMeshComponent->SetMobility(EComponentMobility::Static);
 	InstancedStaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	InstancedStaticMeshComponent->SetGenerateOverlapEvents(false);
+
 }
 
-void AMPM3D_NeoHookean_v1::BeginPlay()
+void AMPM3D_Neo_Interaction::BeginPlay()
 {
 	Super::BeginPlay();
 
 	TArray<FVec3f> TempPositions;
+	TArray<FVec3f> TempPositions2;
 
 	const float spacing = 0.5f;
 	const int box = 4;
 	const float s = 32.f;
-	
-	for (float i = -box ; i < box; i += spacing) //-16+16
+
+	for (float i = -box; i < box; i += spacing) 
 	{
 		for (float j = -box; j < box; j += spacing)
 		{
@@ -34,9 +37,23 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 		}
 	}
 
-	NumParticles = TempPositions.Num();
+	for (float i = -box; i < box; i += spacing)
+	{
+		for (float j = -box - 2; j < box - 2; j += spacing)
+		{
+			for (float k = -box - 10; k < box - 10; k += spacing)
+			{
+				TempPositions2.Add(FVec3f{ s + i, s + j, s + k });
+			}
+		}
+	}
+
+	NumParticles1 = TempPositions.Num();
+	NumParticles2 = TempPositions2.Num();
+	TotalParticles = NumParticles1 + NumParticles2;
+
 	//UE_LOG(LogTemp, Warning, TEXT("%d"), NumParticles);
-	for (int i = 0; i < NumParticles; ++i)
+	for (int i = 0; i < NumParticles1; ++i)
 	{
 		Particle* p = new Particle();
 		p->x = TempPositions[i];
@@ -46,7 +63,19 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 
 		m_pParticles.Add(p);
 
-		Fs.Add(FMatrix33{ 1.f, 1.f, 1.f});
+		Fs.Add(FMatrix33{ 1.f, 1.f, 1.f });
+	}
+	for (int i = 0; i < NumParticles2; ++i)
+	{
+		Particle* p = new Particle();
+		p->x = TempPositions2[i];
+		p->v = { 0.f,0.f,0.f };
+		p->C;
+		p->mass = 1.f;
+
+		m_pParticles.Add(p);
+
+		Fs.Add(FMatrix33{ 1.f, 1.f, 1.f });
 	}
 
 	m_pGrid.Empty(NumCells);
@@ -60,11 +89,11 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 
 	P2G();
 
-	for (int i = 0; i < NumParticles; ++i)
+	for (int i = 0; i < TotalParticles; ++i)
 	{
 		Particle* p = m_pParticles[i];
 
-		FVec3f cell_idx{floorf(p->x.X), floorf(p->x.Y) ,floorf(p->x.Z) };
+		FVec3f cell_idx{ floorf(p->x.X), floorf(p->x.Y) ,floorf(p->x.Z) };
 		FVec3f cell_diff{ (p->x.X - cell_idx.X - 0.5f), (p->x.Y - cell_idx.Y - 0.5f), (p->x.Z - cell_idx.Z - 0.5f) };
 
 		weights.Empty(3);
@@ -95,9 +124,9 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 
 	if (InstancedStaticMeshComponent->GetInstanceCount() == 0)
 	{
-		Transforms.Empty(NumParticles);
+		Transforms.Empty(TotalParticles);
 
-		for (int i = 0; i < NumParticles; ++i)
+		for (int i = 0; i < TotalParticles; ++i)
 		{
 			//FTransform tempValue = ;
 			Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100., m_pParticles[i]->x.Y * 100., m_pParticles[i]->x.Z * 100. }));
@@ -106,7 +135,8 @@ void AMPM3D_NeoHookean_v1::BeginPlay()
 	}
 }
 
-void AMPM3D_NeoHookean_v1::Tick(float DeltaTime)
+// Called every frame
+void AMPM3D_Neo_Interaction::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -117,35 +147,24 @@ void AMPM3D_NeoHookean_v1::Tick(float DeltaTime)
 	UpdateParticles();
 }
 
-void AMPM3D_NeoHookean_v1::ClearGrid()
+void AMPM3D_Neo_Interaction::ClearGrid()
 {
-	/*for (int i = 0; i < NumCells; ++i)
-	{
-		Cell* cell = m_pGrid[i];
-
-		cell->mass = 0;
-		cell->v = { 0.f,0.f,0.f };
-
-		m_pGrid[i] = cell;
-	}*/
-
-
 	ParallelFor(NumCells, [&](int32 i)
 		{
 			//Mutex.Lock();
 			Cell* cell = m_pGrid[i];
 
-			cell->mass = 0;
-			cell->v = { 0.f,0.f,0.f };
+	cell->mass = 0;
+	cell->v = { 0.f,0.f,0.f };
 
-			m_pGrid[i] = cell;
-			//Mutex.Unlock();
-	});
+	m_pGrid[i] = cell;
+	//Mutex.Unlock();
+		});
 }
 
-void AMPM3D_NeoHookean_v1::P2G()
+void AMPM3D_Neo_Interaction::P2G()
 {
-	for (int i = 0; i < NumParticles; ++i)
+	for (int i = 0; i < TotalParticles; ++i)
 	{
 		Particle* p = m_pParticles[i];
 
@@ -205,69 +224,41 @@ void AMPM3D_NeoHookean_v1::P2G()
 	}
 }
 
-void AMPM3D_NeoHookean_v1::UpdateGrid()
+void AMPM3D_Neo_Interaction::UpdateGrid()
 {
-	/*for (int i = 0; i < NumCells; ++i)
-	{
-		Cell* cell = m_pGrid[i];
-
-		if (cell->mass > 0)
-		{
-			cell->v /= cell->mass;
-			cell->v += dt * FVec3f(0, 0, gravity);
-
-			int x = i / (grid_res * grid_res);
-			int y = (i % (grid_res * grid_res)) / grid_res;
-			int z = i % grid_res;
-
-			if (x < 2 || x > grid_res - 3)
-			{
-				cell->v.X = 0;
-			}
-			if (y < 2 || y > grid_res - 3)
-			{
-				cell->v.Y = 0;
-			}
-			if (z < 2 || z > grid_res - 3)
-			{
-				cell->v.Z = 0;
-			}
-			m_pGrid[i] = cell;
-		}
-	}*/
 	ParallelFor(NumCells, [&](int32 i)
-	{
-		Cell* cell = m_pGrid[i];
-
-		if (cell->mass > 0)
 		{
-			cell->v /= cell->mass;
-			cell->v += dt * FVector3f(0, 0, gravity);
+			Cell* cell = m_pGrid[i];
 
-			int x = i / (grid_res * grid_res);
-			int y = (i % (grid_res * grid_res)) / grid_res;
-			int z = i % grid_res;
+	if (cell->mass > 0)
+	{
+		cell->v /= cell->mass;
+		cell->v += dt * FVector3f(0, 0, gravity);
 
-			if (x < 2 || x > grid_res - 3)
-			{
-				cell->v.X = 0;
-			}
-			if (y < 2 || y > grid_res - 3)
-			{
-				cell->v.Y = 0;
-			}
-			if (z < 2 || z > grid_res - 3)
-			{
-				cell->v.Z = 0;
-			}
-			m_pGrid[i] = cell;
+		int x = i / (grid_res * grid_res);
+		int y = (i % (grid_res * grid_res)) / grid_res;
+		int z = i % grid_res;
+
+		if (x < 2 || x > grid_res - 3)
+		{
+			cell->v.X = 0;
 		}
-	});
+		if (y < 2 || y > grid_res - 3)
+		{
+			cell->v.Y = 0;
+		}
+		if (z < 2 || z > grid_res - 3)
+		{
+			cell->v.Z = 0;
+		}
+		m_pGrid[i] = cell;
+	}
+		});
 }
 
-void AMPM3D_NeoHookean_v1::G2P()
+void AMPM3D_Neo_Interaction::G2P()
 {
-	for (int i = 0; i < NumParticles; ++i)
+	for (int i = 0; i < TotalParticles; ++i)
 	{
 		Particle* p = m_pParticles[i];
 
@@ -277,7 +268,7 @@ void AMPM3D_NeoHookean_v1::G2P()
 		FVec3f cell_diff = { p->x.X - cell_idx.X - 0.5f, p->x.Y - cell_idx.Y - 0.5f, p->x.Z - cell_idx.Z - 0.5f };
 
 		weights.Empty(3);
-		weights.Add({ 0.5f * powf(0.5f - cell_diff.X, 2), 0.5f *powf(0.5f - cell_diff.Y, 2), 0.5f * powf(0.5f - cell_diff.Z, 2) });
+		weights.Add({ 0.5f * powf(0.5f - cell_diff.X, 2), 0.5f * powf(0.5f - cell_diff.Y, 2), 0.5f * powf(0.5f - cell_diff.Z, 2) });
 		weights.Add({ 0.75f - powf(cell_diff.X, 2), 0.75f - powf(cell_diff.Y, 2), 0.75f - powf(cell_diff.Z, 2) });
 		weights.Add({ 0.5f * powf(0.5f + cell_diff.X, 2), 0.5f * powf(0.5f + cell_diff.Y, 2), 0.5f * powf(0.5f + cell_diff.Z, 2) });
 
@@ -289,7 +280,7 @@ void AMPM3D_NeoHookean_v1::G2P()
 			{
 				for (int gz = 0; gz < 3; ++gz)
 				{
-					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;					
+					float weight = weights[gx].X * weights[gy].Y * weights[gz].Z;
 
 					TVec3<int> cell_x{ cell_idx.X + gx - 1, cell_idx.Y + gy - 1, cell_idx.Z + gz - 1 };
 					int cell_index = cell_x.X * grid_res * grid_res + cell_x.Y * grid_res + cell_x.Z;
@@ -298,7 +289,7 @@ void AMPM3D_NeoHookean_v1::G2P()
 					FVec3f weighted_velocity = m_pGrid[cell_index]->v * weight;
 
 					//right calculation
-					PMatrix<float, 3, 3> term{ dist.X * weighted_velocity, dist.Y * weighted_velocity, dist.Z * weighted_velocity };					
+					PMatrix<float, 3, 3> term{ dist.X * weighted_velocity, dist.Y * weighted_velocity, dist.Z * weighted_velocity };
 
 					B += term;
 					p->v += weighted_velocity;
@@ -313,7 +304,7 @@ void AMPM3D_NeoHookean_v1::G2P()
 		p->x.Z = FMath::Clamp(p->x.Z, 1.f, (float)grid_res - 2);
 
 		PMatrix<float, 3, 3> Fp_new{ 1.f,1.f,1.f };
-		
+
 		Fp_new += dt * p->C;
 		Fs[i] = Fp_new * Fs[i];
 
@@ -321,15 +312,15 @@ void AMPM3D_NeoHookean_v1::G2P()
 	}
 }
 
-
-void AMPM3D_NeoHookean_v1::UpdateParticles()
+void AMPM3D_Neo_Interaction::UpdateParticles()
 {
-	Transforms.Empty(NumParticles);
+	Transforms.Empty(TotalParticles);
 
-	for (int i = 0; i < NumParticles; ++i)
+	for (int i = 0; i < TotalParticles; ++i)
 	{
 		Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f }));
 		InstancedStaticMeshComponent->UpdateInstanceTransform(i, Transforms[i]);
 	}
 	InstancedStaticMeshComponent->MarkRenderStateDirty();
 }
+
