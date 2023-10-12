@@ -126,11 +126,16 @@ void AMPM3D_Neo_Interaction::BeginPlay()
 	{
 		Transforms.Empty(TotalParticles);
 
-		for (int i = 0; i < TotalParticles; ++i)
-		{
-			//FTransform tempValue = ;
-			Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100., m_pParticles[i]->x.Y * 100., m_pParticles[i]->x.Z * 100. }));
-		}
+		ParallelFor(TotalParticles, [&](int32 i)
+			{
+				Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100., m_pParticles[i]->x.Y * 100., m_pParticles[i]->x.Z * 100. }));
+			},true);
+
+		//for (int i = 0; i < TotalParticles; ++i)
+		//{
+		//	//FTransform tempValue = ;
+		//	Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100., m_pParticles[i]->x.Y * 100., m_pParticles[i]->x.Z * 100. }));
+		//}
 		InstancedStaticMeshComponent->AddInstances(Transforms, false);
 	}
 }
@@ -151,15 +156,23 @@ void AMPM3D_Neo_Interaction::ClearGrid()
 {
 	ParallelFor(NumCells, [&](int32 i)
 		{
-			//Mutex.Lock();
 			Cell* cell = m_pGrid[i];
 
-	cell->mass = 0;
-	cell->v = { 0.f,0.f,0.f };
+			cell->mass = 0;
+			cell->v = { 0.f,0.f,0.f };
 
-	m_pGrid[i] = cell;
-	//Mutex.Unlock();
+			m_pGrid[i] = cell;
 		});
+
+	/*for (int i = 0; i < NumCells; ++i)
+	{
+		Cell* cell = m_pGrid[i];
+
+		cell->mass = 0;
+		cell->v = { 0.f,0.f,0.f };
+
+		m_pGrid[i] = cell;
+	}*/
 }
 
 void AMPM3D_Neo_Interaction::P2G()
@@ -230,30 +243,58 @@ void AMPM3D_Neo_Interaction::UpdateGrid()
 		{
 			Cell* cell = m_pGrid[i];
 
-	if (cell->mass > 0)
-	{
-		cell->v /= cell->mass;
-		cell->v += dt * FVector3f(0, 0, gravity);
+			if (cell->mass > 0)
+			{
+				cell->v /= cell->mass;
+				cell->v += dt * FVector3f(0, 0, gravity);
 
-		int x = i / (grid_res * grid_res);
-		int y = (i % (grid_res * grid_res)) / grid_res;
-		int z = i % grid_res;
+				int x = i / (grid_res * grid_res);
+				int y = (i % (grid_res * grid_res)) / grid_res;
+				int z = i % grid_res;
 
-		if (x < 2 || x > grid_res - 3)
-		{
-			cell->v.X = 0;
-		}
-		if (y < 2 || y > grid_res - 3)
-		{
-			cell->v.Y = 0;
-		}
-		if (z < 2 || z > grid_res - 3)
-		{
-			cell->v.Z = 0;
-		}
-		m_pGrid[i] = cell;
-	}
+				if (x < 2 || x > grid_res - 3)
+				{
+					cell->v.X = 0;
+				}
+				if (y < 2 || y > grid_res - 3)
+				{
+					cell->v.Y = 0;
+				}
+				if (z < 2 || z > grid_res - 3)
+				{
+					cell->v.Z = 0;
+				}
+				m_pGrid[i] = cell;
+			}
 		});
+	/*for (int i = 0; i < NumCells; ++i)
+	{
+		Cell* cell = m_pGrid[i];
+
+		if (cell->mass > 0)
+		{
+			cell->v /= cell->mass;
+			cell->v += dt * FVec3f(0, 0, gravity);
+
+			int x = i / (grid_res * grid_res);
+			int y = (i % (grid_res * grid_res)) / grid_res;
+			int z = i % grid_res;
+
+			if (x < 2 || x > grid_res - 3)
+			{
+				cell->v.X = 0;
+			}
+			if (y < 2 || y > grid_res - 3)
+			{
+				cell->v.Y = 0;
+			}
+			if (z < 2 || z > grid_res - 3)
+			{
+				cell->v.Z = 0;
+			}
+			m_pGrid[i] = cell;
+		}
+	}*/
 }
 
 void AMPM3D_Neo_Interaction::G2P()
@@ -315,12 +356,19 @@ void AMPM3D_Neo_Interaction::G2P()
 void AMPM3D_Neo_Interaction::UpdateParticles()
 {
 	Transforms.Empty(TotalParticles);
-
-	for (int i = 0; i < TotalParticles; ++i)
+	ParallelFor(TotalParticles, [&](int32 i)
+		{
+			Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f }));
+			
+			//FScopeLock Lock(&Mutex);
+			InstancedStaticMeshComponent->UpdateInstanceTransform(i, Transforms[i]);
+			
+		},true);
+	/*for (int i = 0; i < TotalParticles; ++i)
 	{
 		Transforms.Add(FTransform(FVec3{ m_pParticles[i]->x.X * 100.f, m_pParticles[i]->x.Y * 100.f, m_pParticles[i]->x.Z * 100.f }));
 		InstancedStaticMeshComponent->UpdateInstanceTransform(i, Transforms[i]);
-	}
+	}*/
 	InstancedStaticMeshComponent->MarkRenderStateDirty();
 }
 

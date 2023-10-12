@@ -49,7 +49,7 @@ public:
 
 public:
 	UPROPERTY(BluePrintReadWrite, VisibleAnywhere)
-		UInstancedStaticMeshComponent* InstancedStaticMeshComponent;
+	UInstancedStaticMeshComponent* InstancedStaticMeshComponent;
 
 	int NumParticles = 0;
 
@@ -57,7 +57,6 @@ public:
 	const int NumCells = grid_res * grid_res * grid_res;
 
 	const float dt = 0.1f;
-	const float iterations = (int)(1.f / dt);
 	const float gravity = -0.5f;
 
 	const float elastic_lambda = 15.f;
@@ -69,5 +68,5 @@ public:
 	TArray<FVec3f> weights;
 	TArray<FTransform> Transforms;
 
-	FCriticalSection Mutex;
+	//mutable FCriticalSection myMutex;
 };

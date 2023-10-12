@@ -67,12 +67,14 @@ public:
 	const float iterations = (int)(1.f / dt);
 	const float gravity = -0.5f;
 
-	const float elastic_lambda = 15.f;
-	const float elastic_mu = 50.f;
+	const float elastic_lambda = 10.f;
+	const float elastic_mu = 500.f;
 
 	TArray<Particle*> m_pParticles;
 	TArray<Cell*> m_pGrid;
 	TArray<PMatrix<float, 3, 3>> Fs;
 	TArray<FVec3f> weights;
 	TArray<FTransform> Transforms;
+
+	mutable FCriticalSection myMutex;
 };
